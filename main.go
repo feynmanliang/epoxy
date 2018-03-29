@@ -8,7 +8,7 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/api/core/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
@@ -43,8 +43,13 @@ func main() {
 		glog.Fatal(err.Error())
 	}
 
-	// create the pod watcher
-	podListWatcher := cache.NewListWatchFromClient(clientset.CoreV1().RESTClient(), "pods", v1.NamespaceDefault, fields.Everything())
+	// create the ingress watcher
+	// TODO: this only handles default namespace
+	ingressListWatcher := cache.NewListWatchFromClient(
+		clientset.ExtensionsV1beta1().RESTClient(),
+		"ingresses",
+		v1.NamespaceDefault,
+		fields.Everything())
 
 	// create the workqueue
 	queue := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
@@ -53,7 +58,7 @@ func main() {
 	// whenever the cache is updated, the pod key is added to the workqueue.
 	// Note that when we finally process the item from the workqueue, we might see a newer version
 	// of the Pod than the version which was responsible for triggering the update.
-	indexer, informer := cache.NewIndexerInformer(podListWatcher, &v1.Pod{}, 0, cache.ResourceEventHandlerFuncs{
+	indexer, informer := cache.NewIndexerInformer(ingressListWatcher, &v1beta1.Ingress{}, 0, cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			key, err := cache.MetaNamespaceKeyFunc(obj)
 			if err == nil {
@@ -78,51 +83,13 @@ func main() {
 
 	controller := controller.NewController(queue, indexer, informer)
 
-	// We can now warm up the cache for initial synchronization.
-	// Let's suppose that we knew about a pod "mypod" on our last run, therefore add it to the cache.
-	// If this pod is not there anymore, the controller will be notified about the removal after the
-	// cache has synchronized.
-	indexer.Add(&v1.Pod{
-		ObjectMeta: meta_v1.ObjectMeta{
-			Name:      "mypod",
-			Namespace: v1.NamespaceDefault,
-		},
-	})
-
-	// Now let's start the controller
+	// Start the controller
 	stop := make(chan struct{})
 	defer close(stop)
 	go controller.Run(1, stop)
 
 	// Wait forever
 	select {}
-
-	// for {
-	// 	pods, err := clientset.CoreV1().Pods("").List(metav1.ListOptions{})
-	// 	if err != nil {
-	// 		glog.Fatal(err.Error())
-	// 	}
-	// 	fmt.Printf("There are %d pods in the cluster\n", len(pods.Items))
-
-	// 	// Examples for error handling:
-	// 	// - Use helper functions like e.g. errors.IsNotFound()
-	// 	// - And/or cast to StatusError and use its properties like e.g. ErrStatus.Message
-	// 	namespace := "default"
-	// 	pod := "example-xxxxx"
-	// 	_, err = clientset.CoreV1().Pods(namespace).Get(pod, metav1.GetOptions{})
-	// 	if errors.IsNotFound(err) {
-	// 		fmt.Printf("Pod %s in namespace %s not found\n", pod, namespace)
-	// 	} else if statusError, isStatus := err.(*errors.StatusError); isStatus {
-	// 		fmt.Printf("Error getting pod %s in namespace %s: %v\n",
-	// 			pod, namespace, statusError.ErrStatus.Message)
-	// 	} else if err != nil {
-	// 		glog.Fatal(err.Error())
-	// 	} else {
-	// 		fmt.Printf("Found pod %s in namespace %s\n", pod, namespace)
-	// 	}
-
-	// 	time.Sleep(10 * time.Second)
-	// }
 }
 
 func homeDir() string {
