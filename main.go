@@ -16,6 +16,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 
 	"github.com/feynmanliang/epoxy/controller"
+	"github.com/feynmanliang/epoxy/server"
 )
 
 func createConnection() (*kubernetes.Clientset, error) {
@@ -87,6 +88,11 @@ func main() {
 	stop := make(chan struct{})
 	defer close(stop)
 	go controller.Run(1, stop)
+
+	// Start the server
+	stopServer := make(chan struct{})
+	defer close(stopServer)
+	go server.Run(stop)
 
 	// Wait forever
 	select {}

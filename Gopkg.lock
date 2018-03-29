@@ -108,6 +108,18 @@
   version = "v0.1.0"
 
 [[projects]]
+  name = "github.com/gorilla/context"
+  packages = ["."]
+  revision = "1ea25387ff6f684839d82767c1733ff4d4d15d0a"
+  version = "v1.1"
+
+[[projects]]
+  name = "github.com/gorilla/mux"
+  packages = ["."]
+  revision = "53c1911da2b537f792e7cafcb446b05ffe33b996"
+  version = "v1.6.1"
+
+[[projects]]
   branch = "master"
   name = "github.com/gregjones/httpcache"
   packages = [
@@ -396,6 +408,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "aa015491fb2fdca585bc88c1f8f2c118f167f2f75745331c26f63ed8c3246d03"
+  inputs-digest = "058958bfdd10f8fbe04d8a776dda8e29d17d64cb5dbc66a44160914a37b2dfb9"
   solver-name = "gps-cdcl"
   solver-version = 1
